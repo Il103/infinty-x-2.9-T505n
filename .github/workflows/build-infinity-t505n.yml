@@ -1,36 +1,9 @@
-name: Build and Release Infinity X 15 for T505N
-
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release Version'
-        required: true
-        default: '2.9'
-      build_type:
-        description: 'Build Type'
-        required: true
-        default: 'userdebug'
-        type: choice
-        options:
-          - userdebug
-          - user
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 360
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Maximize Build Space & Logical Swap
+- name: Maximize Build Space & Logical Swap
         uses: easimon/maximize-build-space@master
         with:
-          root-reserve-mb: 1024
-          # مساحة سواب 24 جيجا كفاية جداً وبتسيب مكان للهارد
-          swap-size-mb: 24576
+          root-reserve-mb: 512
+          # سواب 16 جيجا بس عشان نسيب للهارد براح
+          swap-size-mb: 16384
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
@@ -41,7 +14,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libc6-dev-i386 libncurses5 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig ccache bc libssl-dev rsync python3 python3-pip ninja-build --no-install-recommends
-          ccache -M 10G
+          ccache -M 5G # كاش صغير جداً عشان المساحة
 
       - name: Setup Repo Tool
         run: |
@@ -50,51 +23,18 @@ jobs:
           chmod a+x ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Slim Sync (Android 15)
+      - name: Sync and PURGE (The Nuclear Option)
         run: |
           mkdir -p ~/android/infinity
           cd ~/android/infinity
           git config --global user.email "builder@infinity-x.com"
           git config --global user.name "Infinity Builder"
           
-          # التأكد من الربط ببرانش 15 الصحيح
+          # الربط ببرانش 15 (تأكدنا إنه البرانش الصح)
           repo init -u https://github.com/ProjectInfinity-X/manifest -b 15 --git-lfs --depth=1 --no-clone-bundle
+          
+          # سينك سريع وخفيف
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
-
-      - name: Clone Device Trees
-        run: |
-          cd ~/android/infinity
-          git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l device/samsung/gta4l || true
-          git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l-common device/samsung/gta4l-common || true
-          git clone --depth=1 https://github.com/Matrixx-Devices/android_kernel_samsung_gta4l kernel/samsung/gta4l || true
-          git clone --depth=1 https://github.com/Matrixx-Devices/android_vendor_samsung_gta4l-common vendor/samsung/gta4l-common || true
-
-      - name: Build Infinity X
-        run: |
-          cd ~/android/infinity
-          source build/envsetup.sh
-          lunch infinity_gta4l-${{ github.event.inputs.build_type }}
-          export USE_CCACHE=1
-          export CCACHE_EXEC=/usr/bin/ccache
-          mka infinity -j$(nproc --all) 2>&1 | tee build.log
-
-      - name: Prepare Release
-        if: success()
-        run: |
-          cd ~/android/infinity/out/target/product/gta4l
-          mkdir -p release
-          cp *.zip release/ 2>/dev/null || true
-          cp *.img release/ 2>/dev/null || true
-          cd release
-          md5sum * > md5sum.txt
-          sha256sum * > sha256sum.txt
-
-      - name: Create GitHub Release
-        if: success()
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: Infinity X ${{ github.event.inputs.version }} (Android 15)
-          files: release/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+          # الحركة الصايعة: مسح فولدر الـ .repo عشان نفضي 60 جيجا للهارد!
+          rm -rf .repo
