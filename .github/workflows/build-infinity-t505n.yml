@@ -47,26 +47,26 @@ jobs:
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
-          export PATH=~/bin:$PATH
-          git config --global user.email "builder@infinity-x.com"
-          git config --global user.name "Infinity Builder"
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Sync Infinity X 14.0
+      - name: Force Sync Default Branch
         run: |
-          export PATH=~/bin:$PATH
           mkdir -p ~/android/infinity
           cd ~/android/infinity
-          # التعديل هنا: الفرع الصحيح هو 14
-          repo init -u https://github.com/ProjectInfinity-X/manifest -b 14 --git-lfs --depth=1
-          repo sync -c -j8 --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+          git config --global user.email "builder@infinity-x.com"
+          git config --global user.name "Infinity Builder"
+          
+          # هنا الذكاء: مش بنحدد برانش، هو هياخد الـ HEAD بتاع الريبو أوتوماتيك
+          repo init -u https://github.com/ProjectInfinity-X/manifest --git-lfs --depth=1
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
 
       - name: Clone Device Trees
         run: |
           cd ~/android/infinity
-          git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l device/samsung/gta4l
-          git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l-common device/samsung/gta4l-common
-          git clone --depth=1 https://github.com/Matrixx-Devices/android_kernel_samsung_gta4l kernel/samsung/gta4l
-          git clone --depth=1 https://github.com/Matrixx-Devices/android_vendor_samsung_gta4l-common vendor/samsung/gta4l-common
+          git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l device/samsung/gta4l || true
+          git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l-common device/samsung/gta4l-common || true
+          git clone --depth=1 https://github.com/Matrixx-Devices/android_kernel_samsung_gta4l kernel/samsung/gta4l || true
+          git clone --depth=1 https://github.com/Matrixx-Devices/android_vendor_samsung_gta4l-common vendor/samsung/gta4l-common || true
 
       - name: Build Infinity X
         run: |
@@ -75,10 +75,9 @@ jobs:
           lunch infinity_gta4l-${{ github.event.inputs.build_type }}
           export USE_CCACHE=1
           export CCACHE_EXEC=/usr/bin/ccache
-          export NINJA_ARGS="-j4"
-          mka infinity -j4 2>&1 | tee build.log
+          mka infinity -j$(nproc --all) 2>&1 | tee build.log
 
-      - name: Prepare Release
+      - name: Prepare and Release
         if: success()
         run: |
           cd ~/android/infinity/out/target/product/gta4l
@@ -95,21 +94,6 @@ jobs:
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: Infinity X ${{ github.event.inputs.version }} for T505N
-          body: |
-            ## Infinity X ${{ github.event.inputs.version }} for Samsung Tab A7 (SM-T505N)
-            
-            **Device**: gta4l (LTE)
-            **Android**: 14
-            **Type**: ${{ github.event.inputs.build_type }}
-            
-            ### Installation:
-            1. Download the ZIP file
-            2. Boot to TWRP/Recovery
-            3. Wipe System/Data/Cache
-            4. Flash ROM
-            5. Reboot and Enjoy!
-            
-            Made with love in Egypt 🇪🇬
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
