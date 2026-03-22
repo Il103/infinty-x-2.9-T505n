@@ -42,4 +42,4 @@
 - Matrixx Devices
 - BloodReaper (Kernel)
 
-**Made with love in Egypt** 🇪🇬
+**Made with love By B E R U** 🇪🇬
