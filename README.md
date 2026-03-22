@@ -18,7 +18,7 @@
 
 ### Latest Release: Infinity X 2.9
 **Version**: 14.0-UNOFFICIAL-gta4l  
-**Android**: 14  
+**Android**: 15  
 **Size**: ~1.2 GB
 
 [![Download](https://img.shields.io/badge/Download-Latest%20Release-red)](https://github.com/YOUR_USERNAME/infinity-x-t505n/releases/latest)
