@@ -1,0 +1,39 @@
+env:
+  CIRRUS_WORKING_DIR: /tmp/android
+  # هنا بنحط الـ Token المشفر بتاعك عشان يرفع الملفات في الآخر
+  # GITHUB_TOKEN: ENCRYPTED[حط_التوكن_هنا]
+
+task:
+  name: "Infinity_X_Mega_Build_T505N"
+  # بنستخدم سيرفرات Google Cloud القوية
+  gce_instance:
+    image_project: ubuntu-os-cloud
+    image_family: ubuntu-2204-lts
+    cpu: 8
+    # زودنا الرامات لـ 32 جيجا حقيقية!
+    memory: 32G
+    # زودنا الهارد لـ 200 جيجا عشان إيرور المساحة يختفي للأبد
+    disk: 200
+
+  install_deps_script:
+    - sudo apt-get update
+    - sudo apt-get install -y git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libc6-dev-i386 libncurses5 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig ccache bc libssl-dev rsync python3 python3-pip ninja-build --no-install-recommends
+    - mkdir -p ~/bin
+    - curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+    - chmod a+x ~/bin/repo
+
+  sync_script:
+    - export PATH="~/bin:$PATH"
+    - git config --global user.email "builder@infinity-x.com"
+    - git config --global user.name "Infinity Builder"
+    - repo init -u https://github.com/ProjectInfinity-X/manifest -b 15 --git-lfs --depth=1 --no-clone-bundle
+    - repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+    # حركة الأساطية: بنمسح فولدر الـ .repo عشان نفضي مساحة جبارة للهارد وقت البناء
+    - rm -rf .repo 
+
+  build_script:
+    - export PATH="~/bin:$PATH"
+    - source build/envsetup.sh
+    - lunch infinity_gta4l-userdebug
+    - export USE_CCACHE=1
+    - mka infinity -j$(nproc --all)
