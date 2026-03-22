@@ -4,15 +4,15 @@ env:
   CIRRUS_WORKING_DIR: /tmp/android
 
 task:
-  name: "Infinity_X_Final_Build_T505N"
+  name: "Infinity_X_T505N_Build"
   timeout_in: 120m
+  # هنا بنطلب السيرفر العملاق عشان نهرب من إيرور المساحة اللي جالك
   gce_instance:
     image_project: ubuntu-os-cloud
     image_family: ubuntu-2204-lts
     cpu: 8
     memory: 32G
-    # 250 جيجا عشان ننسى إيرور المساحة (Write error 28) للأبد
-    disk: 250
+    disk: 250 # 250 جيجا حقيقية!
 
   install_deps_script:
     - sudo apt-get update
@@ -27,7 +27,14 @@ task:
     - git config --global user.name "Infinity Builder"
     - repo init -u https://github.com/ProjectInfinity-X/manifest -b 15 --git-lfs --depth=1 --no-clone-bundle
     - repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
-    # مسح الـ .repo عشان نفضي مساحة لملفات الـ Build (أهم خطوة)
+
+  clone_trees_script:
+    - export PATH="~/bin:$PATH"
+    - git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l device/samsung/gta4l
+    - git clone --depth=1 https://github.com/LineageOS/android_device_samsung_gta4l-common device/samsung/gta4l-common
+    - git clone --depth=1 https://github.com/Matrixx-Devices/android_kernel_samsung_gta4l kernel/samsung/gta4l
+    - git clone --depth=1 https://github.com/Matrixx-Devices/android_vendor_samsung_gta4l-common vendor/samsung/gta4l-common
+    # مسح الـ .repo فوراً بعد السينك عشان نوفر 80 جيجا
     - rm -rf .repo 
 
   build_script:
@@ -35,9 +42,3 @@ task:
     - source build/envsetup.sh
     - lunch infinity_gta4l-userdebug
     - mka infinity -j$(nproc --all)
-
-  upload_script:
-    - export PATH="~/bin:$PATH"
-    - cd out/target/product/gta4l/
-    - zip -r InfinityX_T505N_Android15.zip *.zip *.img
-    - curl -H "Authorization: token $GITHUB_TOKEN" -X POST --data-binary @InfinityX_T505N_Android15.zip "https://uploads.github.com/repos/${CIRRUS_REPO_FULL_NAME}/releases"
