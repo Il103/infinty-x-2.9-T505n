@@ -28,28 +28,13 @@ jobs:
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@master
         with:
-          root-reserve-mb: 1024
-          swap-size-mb: 76800
+          root-reserve-mb: 2048
+          swap-size-mb: 24576
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
-
-      - name: Setup 75GB Swap
-        run: |
-          sudo swapoff -a || true
-          sudo dd if=/dev/zero of=/swapfile bs=1M count=76800 status=progress
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          sudo dd if=/dev/zero of=/swapfile2 bs=1M count=10240
-          sudo chmod 600 /swapfile2
-          sudo mkswap /swapfile2
-          sudo swapon /swapfile2
-          echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swap.conf
-          sudo sysctl -p /etc/sysctl.d/99-swap.conf
-          free -h
 
       - name: Install Dependencies
         run: |
