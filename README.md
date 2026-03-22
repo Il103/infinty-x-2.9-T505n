@@ -17,7 +17,7 @@
 ## Download
 
 ### Latest Release: Infinity X 2.9
-**Version**: 14.0-UNOFFICIAL-gta4l  
+**Version**: 15.0-UNOFFICIAL-gta4l  
 **Android**: 15  
 **Size**: ~1.2 GB
 
