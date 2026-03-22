@@ -25,11 +25,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Maximize Build Space & High Swap
+      - name: Maximize Build Space & Logical Swap
         uses: easimon/maximize-build-space@master
         with:
           root-reserve-mb: 1024
-          swap-size-mb: 32768
+          # مساحة سواب 24 جيجا كفاية جداً وبتسيب مكان للهارد
+          swap-size-mb: 24576
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
@@ -40,7 +41,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libc6-dev-i386 libncurses5 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig ccache bc libssl-dev rsync python3 python3-pip ninja-build --no-install-recommends
-          ccache -M 15G
+          ccache -M 10G
 
       - name: Setup Repo Tool
         run: |
@@ -49,14 +50,16 @@ jobs:
           chmod a+x ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Sync Infinity X (Android 15)
+      - name: Slim Sync (Android 15)
         run: |
           mkdir -p ~/android/infinity
           cd ~/android/infinity
           git config --global user.email "builder@infinity-x.com"
           git config --global user.name "Infinity Builder"
+          
+          # التأكد من الربط ببرانش 15 الصحيح
           repo init -u https://github.com/ProjectInfinity-X/manifest -b 15 --git-lfs --depth=1 --no-clone-bundle
-          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune --fail-fast
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
 
       - name: Clone Device Trees
         run: |
@@ -92,11 +95,6 @@ jobs:
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: Infinity X ${{ github.event.inputs.version }} (Android 15)
-          body: |
-            ## Infinity X 15 for Samsung Tab A7 (gta4l)
-            - Clean Build
-            - High Swap Configuration
-            - Egypt Pride 🇪🇬
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
