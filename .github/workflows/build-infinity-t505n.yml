@@ -1,4 +1,4 @@
-name: Build and Release Infinity X 2.9 for T505N
+name: Build and Release Infinity X 15 for T505N
 
 on:
   workflow_dispatch:
@@ -25,10 +25,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Maximize Build Space
+      - name: Maximize Build Space & Smart Swap
         uses: easimon/maximize-build-space@master
         with:
           root-reserve-mb: 2048
+          # السواب الحلو اللي هيسيب مساحة للسورس كود
           swap-size-mb: 24576
           remove-dotnet: 'true'
           remove-android: 'true'
@@ -49,15 +50,15 @@ jobs:
           chmod a+x ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Force Sync Default Branch
+      - name: Sync Infinity X (Android 15)
         run: |
           mkdir -p ~/android/infinity
           cd ~/android/infinity
           git config --global user.email "builder@infinity-x.com"
           git config --global user.name "Infinity Builder"
           
-          # هنا الذكاء: مش بنحدد برانش، هو هياخد الـ HEAD بتاع الريبو أوتوماتيك
-          repo init -u https://github.com/ProjectInfinity-X/manifest --git-lfs --depth=1
+          # الربط المباشر على برانش 15
+          repo init -u https://github.com/ProjectInfinity-X/manifest -b 15 --git-lfs --depth=1
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
 
       - name: Clone Device Trees
@@ -75,9 +76,10 @@ jobs:
           lunch infinity_gta4l-${{ github.event.inputs.build_type }}
           export USE_CCACHE=1
           export CCACHE_EXEC=/usr/bin/ccache
+          # بناء بأقصى سرعة لكل الأنوية المتاحة
           mka infinity -j$(nproc --all) 2>&1 | tee build.log
 
-      - name: Prepare and Release
+      - name: Prepare Release
         if: success()
         run: |
           cd ~/android/infinity/out/target/product/gta4l
@@ -93,7 +95,22 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.event.inputs.version }}
-          name: Infinity X ${{ github.event.inputs.version }} for T505N
+          name: Infinity X ${{ github.event.inputs.version }} (Android 15) for T505N
+          body: |
+            ## Infinity X ${{ github.event.inputs.version }} for Samsung Tab A7 (SM-T505N)
+            
+            **Device**: gta4l (LTE)
+            **Android**: 15
+            **Type**: ${{ github.event.inputs.build_type }}
+            
+            ### Installation:
+            1. Download the ZIP file
+            2. Boot to TWRP/Recovery
+            3. Wipe System/Data/Cache
+            4. Flash ROM
+            5. Reboot and Enjoy!
+            
+            Made with love in Egypt 🇪🇬
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
