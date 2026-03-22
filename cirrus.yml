@@ -1,19 +1,18 @@
 env:
+  # السطر اللي أنت طلعته في الصورة بالظبط
+  GITHUB_TOKEN: ENCRYPTED[!bb2d56c2963a05a89beaf9163fe12dd3e6a2e198190c962979031800d54eca68e359e401e3d2ac238943510b4f5cb0f2!]
   CIRRUS_WORKING_DIR: /tmp/android
-  # هنا بنحط الـ Token المشفر بتاعك عشان يرفع الملفات في الآخر
-  # GITHUB_TOKEN: ENCRYPTED[حط_التوكن_هنا]
 
 task:
-  name: "Infinity_X_Mega_Build_T505N"
-  # بنستخدم سيرفرات Google Cloud القوية
+  name: "Infinity_X_Build_T505N"
+  timeout_in: 120m
+  # إعدادات السيرفر الجبارة عشان ننسى إيرور المساحة
   gce_instance:
     image_project: ubuntu-os-cloud
     image_family: ubuntu-2204-lts
     cpu: 8
-    # زودنا الرامات لـ 32 جيجا حقيقية!
     memory: 32G
-    # زودنا الهارد لـ 200 جيجا عشان إيرور المساحة يختفي للأبد
-    disk: 200
+    disk: 250 
 
   install_deps_script:
     - sudo apt-get update
@@ -28,12 +27,16 @@ task:
     - git config --global user.name "Infinity Builder"
     - repo init -u https://github.com/ProjectInfinity-X/manifest -b 15 --git-lfs --depth=1 --no-clone-bundle
     - repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
-    # حركة الأساطية: بنمسح فولدر الـ .repo عشان نفضي مساحة جبارة للهارد وقت البناء
     - rm -rf .repo 
 
   build_script:
     - export PATH="~/bin:$PATH"
     - source build/envsetup.sh
     - lunch infinity_gta4l-userdebug
-    - export USE_CCACHE=1
     - mka infinity -j$(nproc --all)
+
+  upload_script:
+    - export PATH="~/bin:$PATH"
+    - cd out/target/product/gta4l/
+    - zip -r InfinityX_T505N_Android15.zip *.zip *.img
+    - curl -H "Authorization: token $GITHUB_TOKEN" -X POST --data-binary @InfinityX_T505N_Android15.zip "https://uploads.github.com/repos/${CIRRUS_REPO_FULL_NAME}/releases"
